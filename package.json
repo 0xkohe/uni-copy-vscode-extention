@@ -2,10 +2,12 @@
   "name": "uni-copy",
   "displayName": "uni-copy",
   "description": "UniCopy is a VSCode extension that quickly copies and merges all files within a folder into one.",
-  "version": "0.0.1",
+  "publisher": "0xkohe",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.98.0"
   },
+  "icon": "icon.png",
   "categories": [
     "Other"
   ],
