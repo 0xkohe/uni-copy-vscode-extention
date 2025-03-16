@@ -1,5 +1,7 @@
 # Uni-Copy Extension
 
+https://github.com/0xkohe/uni-copy-vscode-extention
+
 ## Overview
 
 Uni-Copy is a Visual Studio Code extension that allows users to concatenate the contents of files in a folder and copy them to the clipboard by simply right-clicking and selecting "Unified Copy". It supports both normal and recursive operations.
