@@ -15,12 +15,21 @@
       {
         "command": "extension.concatAndCopyFiles",
         "title": "Unified Copy"
+      },
+      {
+          "command": "extension.concatAndCopyFilesRecursively",
+          "title": "Unified Copy Recursively"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "extension.concatAndCopyFiles",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.concatAndCopyFilesRecursively",
           "when": "explorerResourceIsFolder",
           "group": "navigation"
         }

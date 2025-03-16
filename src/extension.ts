@@ -1,46 +1,61 @@
 import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
-    let disposable = vscode.commands.registerCommand('extension.concatAndCopyFiles', async (uri: vscode.Uri) => {
-        // Check if a folder is selected
-        if (!uri || !uri.fsPath) {
-            vscode.window.showErrorMessage('Please select a folder.');
+    // 通常コピー
+    const copyCommand = vscode.commands.registerCommand('extension.concatAndCopyFiles', async (uri: vscode.Uri) => {
+        await processFiles(uri, false);
+    });
+
+    // 再帰的コピー
+    const recursiveCopyCommand = vscode.commands.registerCommand('extension.concatAndCopyFilesRecursively', async (uri: vscode.Uri) => {
+        await processFiles(uri, true);
+    });
+
+    context.subscriptions.push(copyCommand, recursiveCopyCommand);
+}
+
+async function processFiles(uri: vscode.Uri, isRecursive: boolean) {
+    if (!uri || !uri.fsPath) {
+        vscode.window.showErrorMessage('Please select a folder.');
+        return;
+    }
+
+    try {
+        let combinedText = '';
+        let fileCount = 0;
+        const maxFiles = 30;
+
+        async function readFiles(folder: vscode.Uri) {
+            const entries = await vscode.workspace.fs.readDirectory(folder);
+            for (const [name, type] of entries) {
+                if (fileCount >= maxFiles) {
+                    return;
+                }
+
+                const entryUri = vscode.Uri.joinPath(folder, name);
+                if (type === vscode.FileType.File) {
+                    const fileContentBytes = await vscode.workspace.fs.readFile(entryUri);
+                    const fileContent = new TextDecoder('utf-8').decode(fileContentBytes);
+                    combinedText += `=== ${name} ===\n${fileContent}\n\n`;
+                    fileCount++;
+                } else if (type === vscode.FileType.Directory && isRecursive) {
+                    await readFiles(entryUri);
+                }
+            }
+        }
+
+        await readFiles(uri);
+
+        if (combinedText === '') {
+            vscode.window.showInformationMessage('No readable files were found in the folder.');
             return;
         }
 
-        try {
-            const folderUri = uri;
-            // Retrieve the list of entries (files and subfolders) in the folder
-            const entries = await vscode.workspace.fs.readDirectory(folderUri);
-            let combinedText = '';
-            
-            // Iterate over each entry
-            for (const [name, type] of entries) {
-                // Process only files (exclude directories)
-                if (type === vscode.FileType.File) {
-                    // Generate the URI for the file
-                    const fileUri = vscode.Uri.joinPath(folderUri, name);
-                    // Read the file content (returns Uint8Array, so convert it to string)
-                    const fileContentBytes = await vscode.workspace.fs.readFile(fileUri);
-                    const fileContent = new TextDecoder('utf-8').decode(fileContentBytes);
-                    // Concatenate the file name header and content
-                    combinedText += `=== ${name} ===\n${fileContent}\n\n`;
-                }
-            }
-            // If the combined text is empty, it means no files were found
-            if (combinedText === '') {
-                vscode.window.showInformationMessage('No readable files were found in the folder.');
-                return;
-            }
-            // Copy the concatenated text to the clipboard
-            await vscode.env.clipboard.writeText(combinedText);
-            vscode.window.showInformationMessage('File contents have been concatenated and copied to the clipboard.');
-        } catch (error) {
-            vscode.window.showErrorMessage(`An error occurred: ${error}`);
-        }
-    });
-
-    context.subscriptions.push(disposable);
+        await vscode.env.clipboard.writeText(combinedText);
+        vscode.window.showInformationMessage(`Contents of ${fileCount} files have been concatenated and copied to the clipboard.`);
+    } catch (error) {
+        vscode.window.showErrorMessage(`An error occurred: ${error}`);
+    }
 }
 
 export function deactivate() {}
