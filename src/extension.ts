@@ -2,41 +2,41 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('extension.concatAndCopyFiles', async (uri: vscode.Uri) => {
-        // フォルダが選択されているかチェック
+        // Check if a folder is selected
         if (!uri || !uri.fsPath) {
-            vscode.window.showErrorMessage('フォルダを選択してください。');
+            vscode.window.showErrorMessage('Please select a folder.');
             return;
         }
 
         try {
             const folderUri = uri;
-            // フォルダ内のエントリ（ファイルやサブフォルダ）の一覧を取得
+            // Retrieve the list of entries (files and subfolders) in the folder
             const entries = await vscode.workspace.fs.readDirectory(folderUri);
             let combinedText = '';
             
-            // 各エントリについてループ
+            // Iterate over each entry
             for (const [name, type] of entries) {
-                // ファイルのみ処理（ディレクトリは除外）
+                // Process only files (exclude directories)
                 if (type === vscode.FileType.File) {
-                    // ファイルのURIを生成
+                    // Generate the URI for the file
                     const fileUri = vscode.Uri.joinPath(folderUri, name);
-                    // ファイルの内容を読み込み（Uint8Arrayで取得されるので文字列に変換）
+                    // Read the file content (returns Uint8Array, so convert it to string)
                     const fileContentBytes = await vscode.workspace.fs.readFile(fileUri);
                     const fileContent = new TextDecoder('utf-8').decode(fileContentBytes);
-                    // ファイル名のヘッダーと内容を結合
+                    // Concatenate the file name header and content
                     combinedText += `=== ${name} ===\n${fileContent}\n\n`;
                 }
             }
-            // もし結合したテキストが空の場合はファイルが無いと判断
+            // If the combined text is empty, it means no files were found
             if (combinedText === '') {
-                vscode.window.showInformationMessage('フォルダ内に読み込むファイルが見つかりませんでした。');
+                vscode.window.showInformationMessage('No readable files were found in the folder.');
                 return;
             }
-            // クリップボードにテキストをコピー
+            // Copy the concatenated text to the clipboard
             await vscode.env.clipboard.writeText(combinedText);
-            vscode.window.showInformationMessage('ファイル内容を結合してクリップボードにコピーしました。');
+            vscode.window.showInformationMessage('File contents have been concatenated and copied to the clipboard.');
         } catch (error) {
-            vscode.window.showErrorMessage(`エラーが発生しました: ${error}`);
+            vscode.window.showErrorMessage(`An error occurred: ${error}`);
         }
     });
 

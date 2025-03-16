@@ -14,7 +14,7 @@
     "commands": [
       {
         "command": "extension.concatAndCopyFiles",
-        "title": "ファイルを結合してクリップボードにコピー"
+        "title": "Unified Copy"
       }
     ],
     "menus": {
