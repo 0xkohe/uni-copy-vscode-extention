@@ -1,26 +1,46 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    let disposable = vscode.commands.registerCommand('extension.concatAndCopyFiles', async (uri: vscode.Uri) => {
+        // フォルダが選択されているかチェック
+        if (!uri || !uri.fsPath) {
+            vscode.window.showErrorMessage('フォルダを選択してください。');
+            return;
+        }
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "uni-copy" is now active!');
+        try {
+            const folderUri = uri;
+            // フォルダ内のエントリ（ファイルやサブフォルダ）の一覧を取得
+            const entries = await vscode.workspace.fs.readDirectory(folderUri);
+            let combinedText = '';
+            
+            // 各エントリについてループ
+            for (const [name, type] of entries) {
+                // ファイルのみ処理（ディレクトリは除外）
+                if (type === vscode.FileType.File) {
+                    // ファイルのURIを生成
+                    const fileUri = vscode.Uri.joinPath(folderUri, name);
+                    // ファイルの内容を読み込み（Uint8Arrayで取得されるので文字列に変換）
+                    const fileContentBytes = await vscode.workspace.fs.readFile(fileUri);
+                    const fileContent = new TextDecoder('utf-8').decode(fileContentBytes);
+                    // ファイル名のヘッダーと内容を結合
+                    combinedText += `=== ${name} ===\n${fileContent}\n\n`;
+                }
+            }
+            // もし結合したテキストが空の場合はファイルが無いと判断
+            if (combinedText === '') {
+                vscode.window.showInformationMessage('フォルダ内に読み込むファイルが見つかりませんでした。');
+                return;
+            }
+            // クリップボードにテキストをコピー
+            await vscode.env.clipboard.writeText(combinedText);
+            vscode.window.showInformationMessage('ファイル内容を結合してクリップボードにコピーしました。');
+        } catch (error) {
+            vscode.window.showErrorMessage(`エラーが発生しました: ${error}`);
+        }
+    });
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('uni-copy.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from uni-copy!');
-	});
-
-	context.subscriptions.push(disposable);
+    context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
