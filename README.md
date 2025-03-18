@@ -10,6 +10,9 @@ Uni-Copy is a Visual Studio Code extension that allows users to concatenate the 
 
 ![Selection_999(939)](https://github.com/user-attachments/assets/ca258429-c68c-463f-8888-7c59f1b2e56f)
 
+
+![Peek 2025-03-18 17-14](https://github.com/user-attachments/assets/c217f391-7fcc-40b3-9745-660bd9f30c04)
+
 ## Features
 
 - **Unified Copy (Folder)**: Combine the contents of files in a selected folder and copy them to the clipboard.
