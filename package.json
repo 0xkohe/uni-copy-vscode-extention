@@ -1,9 +1,9 @@
 {
   "name": "uni-copy",
-  "displayName": "uni-copy",
+  "displayName": "UniCopy",
   "description": "UniCopy is a VSCode extension that quickly copies and merges all files within a folder into one.",
   "publisher": "0xkohe",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "engines": {
     "vscode": "^1.98.0"
   },
@@ -21,6 +21,10 @@
       {
           "command": "extension.concatAndCopyFilesRecursively",
           "title": "Unified Copy Recursively"
+      },
+      {
+        "command": "extension.unifiedCopyTabs",
+        "title": "Unified Copy"
       }
     ],
     "menus": {
@@ -33,6 +37,13 @@
         {
           "command": "extension.concatAndCopyFilesRecursively",
           "when": "explorerResourceIsFolder",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "extension.unifiedCopyTabs",
+          "when": "resourceScheme == 'file'",
           "group": "navigation"
         }
       ]

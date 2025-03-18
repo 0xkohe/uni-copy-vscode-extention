@@ -1,22 +1,38 @@
 import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
-    // 通常コピー
+    // フォルダの内容を結合してコピー（通常コピー）
     const copyCommand = vscode.commands.registerCommand('extension.concatAndCopyFiles', async (uri: vscode.Uri) => {
         await processFiles(uri, false);
     });
 
-    // 再帰的コピー
+    // フォルダの内容を再帰的に結合してコピー（再帰的コピー）
     const recursiveCopyCommand = vscode.commands.registerCommand('extension.concatAndCopyFilesRecursively', async (uri: vscode.Uri) => {
         await processFiles(uri, true);
     });
 
-    context.subscriptions.push(copyCommand, recursiveCopyCommand);
+    // 開いているタブの内容を結合してコピーする Unified Copy コマンド
+    const unifiedCopyTabsCommand = vscode.commands.registerCommand('extension.unifiedCopyTabs', async () => {
+        let combinedText = '';
+        const editors = vscode.window.visibleTextEditors;
+        if (editors.length === 0) {
+            vscode.window.showErrorMessage('開いているタブがありません。');
+            return;
+        }
+        for (const editor of editors) {
+            // ファイル名がない場合は 'Untitled' と表示
+            combinedText += `=== ${editor.document.fileName || 'Untitled'} ===\n${editor.document.getText()}\n\n`;
+        }
+        await vscode.env.clipboard.writeText(combinedText);
+        vscode.window.showInformationMessage(`開いている ${editors.length} タブの内容が結合され、クリップボードにコピーされました。`);
+    });
+
+    context.subscriptions.push(copyCommand, recursiveCopyCommand, unifiedCopyTabsCommand);
 }
 
 async function processFiles(uri: vscode.Uri, isRecursive: boolean) {
     if (!uri || !uri.fsPath) {
-        vscode.window.showErrorMessage('Please select a folder.');
+        vscode.window.showErrorMessage('フォルダを選択してください。');
         return;
     }
 
@@ -47,14 +63,14 @@ async function processFiles(uri: vscode.Uri, isRecursive: boolean) {
         await readFiles(uri);
 
         if (combinedText === '') {
-            vscode.window.showInformationMessage('No readable files were found in the folder.');
+            vscode.window.showInformationMessage('フォルダ内に読み込めるファイルが見つかりませんでした。');
             return;
         }
 
         await vscode.env.clipboard.writeText(combinedText);
-        vscode.window.showInformationMessage(`Contents of ${fileCount} files have been concatenated and copied to the clipboard.`);
+        vscode.window.showInformationMessage(`合計 ${fileCount} 個のファイルの内容が結合され、クリップボードにコピーされました。`);
     } catch (error) {
-        vscode.window.showErrorMessage(`An error occurred: ${error}`);
+        vscode.window.showErrorMessage(`エラーが発生しました: ${error}`);
     }
 }
 
