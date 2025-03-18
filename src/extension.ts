@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
     // フォルダの内容を結合してコピー（通常コピー）
@@ -11,20 +12,51 @@ export function activate(context: vscode.ExtensionContext) {
         await processFiles(uri, true);
     });
 
-    // 開いているタブの内容を結合してコピーする Unified Copy コマンド
+    // 開いているタブすべての内容を結合してコピーする Unified Copy コマンド
     const unifiedCopyTabsCommand = vscode.commands.registerCommand('extension.unifiedCopyTabs', async () => {
-        let combinedText = '';
-        const editors = vscode.window.visibleTextEditors;
-        if (editors.length === 0) {
-            vscode.window.showErrorMessage('開いているタブがありません。');
-            return;
+        try {
+            let combinedText = '';
+
+            // 新しい Tab API を使用して全タブを取得（vscode 1.64 以降）
+            const tabGroups = vscode.window.tabGroups.all;
+            const docPromises: Thenable<vscode.TextDocument>[] = [];
+            for (const group of tabGroups) {
+                for (const tab of group.tabs) {
+                    // タブの input に uri があればテキストファイルとみなす
+                    const input = tab.input as any;
+                    if (input && input.uri) {
+                        docPromises.push(vscode.workspace.openTextDocument(input.uri));
+                    }
+                }
+            }
+            const docs = await Promise.all(docPromises);
+
+            // 同一ファイルが複数タブにある場合の重複除外
+            const seen = new Set<string>();
+            const uniqueDocs = docs.filter(doc => {
+                const key = doc.uri.toString();
+                if (seen.has(key)) {
+                    return false;
+                }
+                seen.add(key);
+                return true;
+            });
+
+            if (uniqueDocs.length === 0) {
+                vscode.window.showErrorMessage('コピーできるタブが見つかりませんでした。');
+                return;
+            }
+
+            for (const doc of uniqueDocs) {
+                // ファイルパスではなく、basename（例: file.txt）のみを表示
+                const baseName = doc.fileName ? path.basename(doc.fileName) : 'Untitled';
+                combinedText += `=== ${baseName} ===\n${doc.getText()}\n\n`;
+            }
+            await vscode.env.clipboard.writeText(combinedText);
+            vscode.window.showInformationMessage(`開いている ${uniqueDocs.length} タブの内容がコピーされました。`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`エラーが発生しました: ${error}`);
         }
-        for (const editor of editors) {
-            // ファイル名がない場合は 'Untitled' と表示
-            combinedText += `=== ${editor.document.fileName || 'Untitled'} ===\n${editor.document.getText()}\n\n`;
-        }
-        await vscode.env.clipboard.writeText(combinedText);
-        vscode.window.showInformationMessage(`開いている ${editors.length} タブの内容が結合され、クリップボードにコピーされました。`);
     });
 
     context.subscriptions.push(copyCommand, recursiveCopyCommand, unifiedCopyTabsCommand);
